@@ -1,22 +1,29 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox
-import git
-import os
-import shutil
+# Importación de módulos necesarios
+import tkinter as tk  # Interfaz gráfica
+from tkinter import filedialog, messagebox  # Diálogos para archivos y mensajes
+import git  # Interfaz con Git
+import os  # Operaciones del sistema operativo
+import shutil  # Herramientas para manipular archivos/rutas
 
+# Verifica si Git está en el PATH del sistema
 git_path = shutil.which("git")
 
 if git_path:
+    # Si Git está disponible, se define su ruta para que GitPython lo use
     os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = git_path
 
 else:
+    # Si Git no está en el PATH, se solicita al usuario que seleccione git.exe manualmente
     from tkinter import filedialog
     git_path = filedialog.askopenfilename(title="Selecciona git.exe (usualmente en C:\\Program Files\\Git\\bin\\git.exe)", filetypes=[("Ejecutable Git", "git.exe")])
     if git_path:
         os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = git_path
     else:
+        # Si no se proporciona git.exe, se muestra error y termina el programa
         messagebox.showerror("Error", "No se encontró git.exe. Por favor, instala Git o proporciona la ruta.")
         exit(1)
+
+# Lista de pasos explicativos que se mostrarán al usuario en la GUI        
 pasos_texto = [
     "PASO 1: Selecciona una carpeta con un repositorio Git válido o inicializa uno nuevo.",
     "PASO 2: Si es un repositorio nuevo, haz clic en 'Inicializar Repositorio (git init)'.",
@@ -27,6 +34,7 @@ pasos_texto = [
     "PASO 7: Haz clic en 'Subir a GitHub (Push)' para enviar los cambios al repositorio remoto en GitHub."
 ]
 
+# Función que devuelve una instancia de un repositorio Git en la ruta seleccionada
 def get_repo():
     path = repositorio.get()
     try:
@@ -34,6 +42,7 @@ def get_repo():
     except git.exc.InvalidGitRepositoryError:
         raise Exception("La carpeta seleccionada no es un repositorio Git válido o está vacía.")
 
+# Selector de carpeta para elegir la ruta del repositorio
 def seleccionar_ruta():
     carpeta = filedialog.askdirectory(title="Selecciona un directorio con un repositorio Git")
     if carpeta:
@@ -47,6 +56,7 @@ def seleccionar_ruta():
         except:
             pass
 
+# Inicializa un nuevo repositorio Git en la carpeta seleccionada
 def inicializar_repositorio():
     try:
         git.Repo.init(repositorio.get())
@@ -56,6 +66,7 @@ def inicializar_repositorio():
     except Exception as e:
         messagebox.showerror("Error", f"Error al inicializar el repositorio: {str(e)}")
 
+# Configura el repositorio remoto con la URL proporcionada
 def configurar_remoto():
     try:
         repo = get_repo()
@@ -71,6 +82,7 @@ def configurar_remoto():
     except Exception as e:
         messagebox.showerror("Error", f"Error al configurar el repositorio remoto: {str(e)}")
 
+# Muestra el estado actual del repositorio (git status)
 def mostrar_estado():
     try:
         repo = get_repo()
@@ -81,6 +93,7 @@ def mostrar_estado():
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo mostrar el estado: {str(e)}")
 
+# Realiza un commit con el mensaje proporcionado
 def hacer_commit():
     try:
         repo = get_repo()
@@ -102,6 +115,7 @@ def hacer_commit():
     except Exception as e:
         messagebox.showerror("Error", f"Error al hacer commit: {str(e)}")
 
+# Realiza push de los cambios al repositorio remoto
 def hacer_push():
     try:
         repo = get_repo()
@@ -118,6 +132,7 @@ def hacer_push():
             messagebox.showinfo("Push", f"Haciendo push a la rama remota: '{rama_remota}' desde la rama local: '{current_branch.name}'")
         else:
             messagebox.showinfo("Push", f"Haciendo push inicial (no había seguimiento) desde la rama local: '{current_branch.name}'\nSe establecerá el upstream automáticamente.")
+        # Primer push con --set-upstream y rama origin
         if not current_branch.tracking_branch():
             repo.git.push("--set-upstream", "origin", current_branch.name)
         else:
@@ -128,6 +143,7 @@ def hacer_push():
     except Exception as e:
         messagebox.showerror("Error", f"Error al subir cambios a GitHub: {str(e)}")
 
+# Actualiza el menú desplegable de ramas disponibles
 def actualizar_ramas():
     try:
         repo = git.Repo(repositorio.get())
@@ -143,6 +159,7 @@ def actualizar_ramas():
     except Exception as e:
         messagebox.showerror("Error", f"Error al obtener ramas: {str(e)}")
 
+# Cambia a una rama seleccionada desde el menú
 def cambiar_rama_remota():
     try:
         repo = get_repo()
@@ -162,10 +179,14 @@ def cambiar_rama_remota():
     except Exception as e:
         messagebox.showerror("Error", f"Error al cambiar de rama: {str(e)}")
 
+# Crea una nueva rama local y la sube al remoto origin
 def crear_rama_remota():
     try:
         repo = get_repo()
-        nombre = nueva_rama.get().strip()
+
+        #si alguien escribe "mi nueva rama", se convertirá automáticamente en "mi-nueva-rama" antes de crearla.
+        nombre = nueva_rama.get().strip().replace(" ", "-")
+        
         if not nombre:
             messagebox.showerror("Error", "Debes ingresar un nombre para la nueva rama.")
             return
@@ -182,21 +203,30 @@ def crear_rama_remota():
         
     except Exception as e:
         messagebox.showerror("Error", f"Error al crear la rama remota: {str(e)}")
-        
+
+# Muestra mensajes de avance en los pasos        
 def actualizar_pasos(mensaje):
     pasos_completados.config(text=mensaje)
 
+# ===================== INTERFAZ GRÁFICA ======================
+
+# Ventana principal
 root = tk.Tk()
 root.title("PushProMaster")
+
+# Variables para widgets
 repositorio = tk.StringVar()
 commit_message = tk.StringVar()
 rama_seleccionada = tk.StringVar()
 nueva_rama = tk.StringVar()
 remote_url = tk.StringVar()
 rama_actual = tk.StringVar()
+
+# Frame principal
 frame = tk.Frame(root)
 frame.grid(row=0, column=0, padx=10, pady=10)
 
+# Lista de widgets con su texto, tipo y fila correspondiente
 widgets = [
     ("Repositorio Git:", tk.Entry(frame, textvariable=repositorio, width=40), 0),
     ("", tk.Button(frame, text="Seleccionar Repositorio", command=seleccionar_ruta), 1),
@@ -213,18 +243,22 @@ widgets = [
     ("Estado del Repositorio:", None, 12)
 ]
 
+# Añade widgets al grid
 for label, widget, row in widgets:
     if label:
         tk.Label(frame, text=label).grid(row=row, column=0, pady=5)
     if widget:
         widget.grid(row=row, column=1, pady=5)
 
+# Menú desplegable para ramas
 rama_menu = tk.OptionMenu(frame, rama_seleccionada, "")
 rama_menu.grid(row=7, column=1, pady=5)
 
+# Cuadro de texto para mostrar estado del repositorio
 status_text = tk.Text(frame, width=40, height=5)
 status_text.grid(row=12, column=1, pady=5)
 
+# Instrucciones paso a paso
 tk.Label(frame, text="Instrucciones Paso a Paso:").grid(row=13, column=0, pady=10)
 steps_frame = tk.Frame(frame)
 steps_frame.grid(row=14, column=0, columnspan=2)
@@ -234,13 +268,17 @@ steps_scroll = tk.Scrollbar(steps_frame, orient="vertical", command=steps_text.y
 steps_scroll.grid(row=0, column=1, sticky='ns')
 steps_text.config(yscrollcommand=steps_scroll.set)
 
+# Inserta los pasos predefinidos
 for paso in pasos_texto:
     steps_text.insert(tk.END, paso + "\n")
 
+# Muestra el paso actual completado
 pasos_completados = tk.Label(frame, text="", fg="green")
 pasos_completados.grid(row=15, column=0, pady=5)
 
+# Muestra la rama actual
 tk.Label(frame, text="Rama actual:").grid(row=16, column=0, pady=5)
 tk.Label(frame, textvariable=rama_actual, fg="blue").grid(row=16, column=1, pady=5)
 
+# Ejecuta la aplicación
 root.mainloop()
